@@ -61,12 +61,16 @@ class S3NotebookManager(NotebookManager):
         self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key.name, model))
         return model
 
-    def _notebook_s3_key(self, path, name):
+    def _notebook_s3_key_string(self, path, name):
         key = self.s3_prefix + path.strip(self.s3_key_delimiter)
         # append delimiter if path is non-empty to avoid s3://bucket//
         if path != '':
             key += self.s3_key_delimiter
         key += name
+        return key
+
+    def _notebook_s3_key(self, path, name):
+        key = self._notebook_s3_key_string(path, name)
         self.log.debug('_notebook_s3_key: looking in bucket:{} for:{}'.format(self.bucket.name, key))
         return self.bucket.get_key(key)
 
@@ -141,3 +145,21 @@ class S3NotebookManager(NotebookManager):
             self.mark_trusted_cells(nb, name, path)
             model['content'] = nb
         return model
+
+    def save_notebook(self, model, name, path=''):
+        self.log.debug('save_notebook: {}'.format(locals()))
+        if 'content' not in model:
+            raise web.HTTPError(400, u'No notebook JSON data provided')
+
+        k = boto.s3.key.Key(self.bucket)
+        k.key = self._notebook_s3_key_string(path, name)
+
+        try:
+            with tempfile.NamedTemporaryFile() as f:
+                current.write(model['content'], f, u'json')
+                f.seek(0)
+                k.set_contents_from_file(f)
+        except Exception as e:
+            raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s %s" % (path, name, e))
+
+        return self.get_notebook(name, path, content=False)
