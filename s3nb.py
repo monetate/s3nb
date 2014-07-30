@@ -8,11 +8,14 @@ c.NotebookApp.notebook_manager_class = 's3nb.S3NotebookManager'
 c.NotebookApp.log_level = 'DEBUG'
 c.S3NotebookManager.s3_base_uri = 's3://bucket/notebook/prefix/'
 """
+import datetime
+
 import boto
 from tornado import web
 
 from IPython.html.services.notebooks.nbmanager import NotebookManager
 from IPython.utils.traitlets import Unicode
+from IPython.utils import tz
 
 
 class S3NotebookManager(NotebookManager):
@@ -36,6 +39,19 @@ class S3NotebookManager(NotebookManager):
             'type': 'directory',
         }
         self.log.debug("_s3_key_dir_to_model: {}: {}".format(key.name, model))
+        return model
+
+    def _s3_key_notebook_to_model(self, key):
+        self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key, key.name))
+        model = {
+            'name': key.name.rsplit(self.s3_key_delimiter, 1)[-1],
+            'path': key.name,
+            'last_modified': datetime.datetime.strptime(
+                key.last_modified[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tz.UTC),
+            'created': None,
+            'type': 'notebook',
+        }
+        self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key.name, model))
         return model
 
     def __init__(self, **kwargs):
@@ -76,4 +92,15 @@ class S3NotebookManager(NotebookManager):
         return notebooks
 
     def list_notebooks(self, path=''):
-        return []
+        self.log.debug('list_notebooks: {}'.format(locals()))
+        key = self.s3_prefix + path.strip(self.s3_key_delimiter)
+        # append delimiter if path is non-empty to avoid s3://bucket//
+        if path != '':
+            key += self.s3_key_delimiter
+        self.log.debug('list_notebooks: looking in bucket:{} under:{}'.format(self.bucket.name, key))
+        notebooks = []
+        for k in self.bucket.list(key, self.s3_key_delimiter):
+            if k.name.endswith(self.filename_ext):
+                notebooks.append(self._s3_key_notebook_to_model(k))
+                self.log.debug('list_notebooks: found {}'.format(k.name))
+        return notebooks
