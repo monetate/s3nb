@@ -104,3 +104,14 @@ class S3NotebookManager(NotebookManager):
                 notebooks.append(self._s3_key_notebook_to_model(k))
                 self.log.debug('list_notebooks: found {}'.format(k.name))
         return notebooks
+
+    def notebook_exists(self, name, path=''):
+        self.log.debug('notebook_exists: {}'.format(locals()))
+        key = self.s3_prefix + path.strip(self.s3_key_delimiter)
+        # append delimiter if path is non-empty to avoid s3://bucket//
+        if path != '':
+            key += self.s3_key_delimiter
+        key += name
+        self.log.debug('notebook_exists: looking in bucket:{} for:{}'.format(self.bucket.name, key))
+        k = self.bucket.get_key(key)
+        return k is not None and not k.name.endswith(self.s3_key_delimiter)
