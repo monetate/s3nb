@@ -154,9 +154,12 @@ class S3NotebookManager(NotebookManager):
         k = boto.s3.key.Key(self.bucket)
         k.key = self._notebook_s3_key_string(path, name)
 
+        nb = current.to_notebook_json(model['content'])
+        self.check_and_sign(nb, name, path)
+
         try:
             with tempfile.NamedTemporaryFile() as f:
-                current.write(model['content'], f, u'json')
+                current.write(nb, f, u'json')
                 f.seek(0)
                 k.set_contents_from_file(f)
         except Exception as e:
