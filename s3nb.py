@@ -9,13 +9,20 @@ c.NotebookApp.log_level = 'DEBUG'
 c.S3NotebookManager.s3_base_uri = 's3://bucket/notebook/prefix/'
 """
 import datetime
+import tempfile
 
 import boto
 from tornado import web
 
 from IPython.html.services.notebooks.nbmanager import NotebookManager
+from IPython.nbformat import current
 from IPython.utils.traitlets import Unicode
 from IPython.utils import tz
+
+
+# s3 return different time formats in different situations apparently
+S3_TIMEFORMAT_GET_KEY = '%a, %d %b %Y %H:%M:%S GMT'
+S3_TIMEFORMAT_BUCKET_LIST = '%Y-%m-%dT%H:%M:%S.000Z'
 
 
 class S3NotebookManager(NotebookManager):
@@ -41,18 +48,27 @@ class S3NotebookManager(NotebookManager):
         self.log.debug("_s3_key_dir_to_model: {}: {}".format(key.name, model))
         return model
 
-    def _s3_key_notebook_to_model(self, key):
+    def _s3_key_notebook_to_model(self, key, timeformat):
         self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key, key.name))
         model = {
             'name': key.name.rsplit(self.s3_key_delimiter, 1)[-1],
             'path': key.name,
             'last_modified': datetime.datetime.strptime(
-                key.last_modified[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=tz.UTC),
+                key.last_modified, timeformat).replace(tzinfo=tz.UTC),
             'created': None,
             'type': 'notebook',
         }
         self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key.name, model))
         return model
+
+    def _notebook_s3_key(self, path, name):
+        key = self.s3_prefix + path.strip(self.s3_key_delimiter)
+        # append delimiter if path is non-empty to avoid s3://bucket//
+        if path != '':
+            key += self.s3_key_delimiter
+        key += name
+        self.log.debug('_notebook_s3_key: looking in bucket:{} for:{}'.format(self.bucket.name, key))
+        return self.bucket.get_key(key)
 
     def __init__(self, **kwargs):
         super(S3NotebookManager, self).__init__(**kwargs)
@@ -101,17 +117,27 @@ class S3NotebookManager(NotebookManager):
         notebooks = []
         for k in self.bucket.list(key, self.s3_key_delimiter):
             if k.name.endswith(self.filename_ext):
-                notebooks.append(self._s3_key_notebook_to_model(k))
+                notebooks.append(self._s3_key_notebook_to_model(k, timeformat=S3_TIMEFORMAT_BUCKET_LIST))
                 self.log.debug('list_notebooks: found {}'.format(k.name))
         return notebooks
 
     def notebook_exists(self, name, path=''):
         self.log.debug('notebook_exists: {}'.format(locals()))
-        key = self.s3_prefix + path.strip(self.s3_key_delimiter)
-        # append delimiter if path is non-empty to avoid s3://bucket//
-        if path != '':
-            key += self.s3_key_delimiter
-        key += name
-        self.log.debug('notebook_exists: looking in bucket:{} for:{}'.format(self.bucket.name, key))
-        k = self.bucket.get_key(key)
+        k = self._notebook_s3_key(path, name)
         return k is not None and not k.name.endswith(self.s3_key_delimiter)
+
+    def get_notebook(self, name, path='', content=True):
+        self.log.debug('get_notebook: {}'.format(locals()))
+        k = self._notebook_s3_key(path, name)
+        model = self._s3_key_notebook_to_model(k, timeformat=S3_TIMEFORMAT_GET_KEY)
+        if content:
+            try:
+                with tempfile.NamedTemporaryFile() as f:
+                    k.get_file(f)
+                    f.seek(0)
+                    nb = current.read(f, u'json')
+            except Exception as e:
+                raise web.HTTPError(400, u"Unreadable Notebook: %s %s" % (os_path, e))
+            self.mark_trusted_cells(nb, name, path)
+            model['content'] = nb
+        return model
