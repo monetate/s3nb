@@ -184,3 +184,10 @@ class S3NotebookManager(NotebookManager):
             self.bucket.delete_key(src_key)
 
         return self.get_notebook(new_name, new_path, content=False)
+
+    def delete_notebook(self, name, path=''):
+        self.log.debug('delete_notebook: {}'.format(locals()))
+
+        key = self._notebook_s3_key_string(path, name)
+        self.log.debug('removing notebook in bucket: {} : {}'.format(self.bucket.name, key))
+        self.bucket.delete_key(key)
