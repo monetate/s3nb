@@ -166,3 +166,21 @@ class S3NotebookManager(NotebookManager):
             raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s %s" % (path, name, e))
 
         return self.get_notebook(name, path, content=False)
+
+    def update_notebook(self, model, name, path=''):
+        self.log.debug('update_notebook: {}'.format(locals()))
+
+        # support updating just name or path even though there doesn't seem to be a way to do this via the UI
+        new_name = model.get('name', name)
+        new_path = model.get('path', path)
+        if path != new_path or name != new_name:
+            src_key = self._notebook_s3_key_string(path, name)
+            dst_key = self._notebook_s3_key_string(new_path, new_name)
+            self.log.debug('copying notebook in bucket: {} from {} to {}'.format(self.bucket.name, src_key, dst_key))
+            if self.bucket.get_key(dst_key):
+                raise web.HTTPError(409, u'Notebook with name already exists: %s' % src_key)
+            self.bucket.copy_key(dst_key, self.bucket.name, src_key)
+            self.log.debug('removing notebook in bucket: {} : {}'.format(self.bucket.name, src_key))
+            self.bucket.delete_key(src_key)
+
+        return self.get_notebook(new_name, new_path, content=False)
