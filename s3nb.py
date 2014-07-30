@@ -34,3 +34,5 @@ class S3NotebookManager(NotebookManager):
         self.s3_connection = boto.connect_s3()
         self.bucket = self.s3_connection.get_bucket(self.s3_bucket)
 
+    def info_string(self):
+        return "Serving notebooks from {}".format(self.s3_base_uri)
