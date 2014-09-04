@@ -10,6 +10,7 @@ c.S3NotebookManager.s3_base_uri = 's3://bucket/notebook/prefix/'
 """
 import datetime
 import tempfile
+from os.path import splitext
 
 import boto
 from tornado import web
@@ -193,3 +194,22 @@ class S3NotebookManager(NotebookManager):
         key = self._notebook_s3_key_string(path, name)
         self.log.debug('removing notebook in bucket: {} : {}'.format(self.bucket.name, key))
         self.bucket.delete_key(key)
+
+    def copy_notebook(self, from_name, to_name=None, path=''):
+        """
+        Copy an existing notebook and return its new model.
+
+        If to_name not specified, increment from_name-Copy#.ipynb.
+        """
+        self.log.debug('copy_notebook: {}'.format(locals()))
+        if to_name is None:
+            from_name_root, _ = splitext(from_name)
+            to_name = self.increment_filename(from_name_root + '-Copy', path)
+
+        model = self.get_notebook(from_name, path)
+        model['name'] = to_name
+
+        self.log.debug('copying notebook from {} to {} with path {}'.format(from_name, to_name, path))
+        self.create_notebook(model, path)
+
+        return model
