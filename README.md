@@ -36,7 +36,7 @@
         cat > $IPYNB_CONFIG <<EOF
     c = get_config()
     c.NotebookApp.notebook_manager_class = 's3nb.S3NotebookManager'
-    c.S3NotebookManager.s3_base_uri = $S3_NOTEBOOK_URI
+    c.S3NotebookManager.s3_base_uri = '$S3_NOTEBOOK_URI'
     EOF
     fi
     ```
