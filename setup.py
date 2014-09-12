@@ -11,6 +11,7 @@ setup(
     author = "Monetate Inc.",
     author_email = "graphaelli@monetate.com",
     description = "s3 backed notebook manager for ipython 2.0+",
+    install_requires = ['ipython>=2.0', 'boto'],
     keywords = "ipython",
     license = "Python",
     long_description = """This package enables storage of ipynb files in s3""",
