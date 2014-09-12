@@ -3,11 +3,9 @@ try:
 except ImportError:
     from distutils.core import setup
 
-import s3nb
-
 setup(
     name = 's3nb',
-    version = s3nb.__version__,
+    version = '0.0.2',
     author = "Monetate Inc.",
     author_email = "graphaelli@monetate.com",
     description = "s3 backed notebook manager for ipython 2.0+",
