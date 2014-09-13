@@ -10,7 +10,7 @@ c.S3NotebookManager.s3_base_uri = 's3://bucket/notebook/prefix/'
 """
 import datetime
 import tempfile
-from os.path import splitext
+from os.path import join, splitext
 
 import boto
 from tornado import web
@@ -213,3 +213,68 @@ class S3NotebookManager(NotebookManager):
         self.create_notebook(model, path)
 
         return model
+
+    # Checkpoint methods
+    checkpoint_dir = Unicode(u'ipynb_checkpoints', config=True)
+
+    def get_checkpoint_name(self, checkpoint_id, name):
+        basename, _ = splitext(name)
+        checkpoint_name = '{name}--{checkpoint_id}{ext}'.format(
+            name=basename,
+            checkpoint_id=checkpoint_id,
+            ext=self.filename_ext
+        )
+
+        return checkpoint_name
+
+    def get_checkpoint_path(self, path=''):
+        return join(path, self.checkpoint_dir)
+
+    def get_checkpoint_model(self, checkpoint_id, name, path=''):
+        checkpoint_id = u'checkpoint'
+        checkpoint_path = self.get_checkpoint_path(path)
+        checkpoint_name = self.get_checkpoint_name(checkpoint_id, name)
+
+        key = self._notebook_s3_key(checkpoint_path, checkpoint_name)
+        checkpoint_notebook_model = self._s3_key_notebook_to_model(
+            key,
+            timeformat=S3_TIMEFORMAT_GET_KEY
+        )
+        checkpoint_model = {
+            'id': checkpoint_id,
+            'last_modified': checkpoint_notebook_model['last_modified']
+        }
+
+        return checkpoint_model
+
+    def create_checkpoint(self, name, path=''):
+        checkpoint_id = u'checkpoint'
+        checkpoint_name = self.get_checkpoint_name(checkpoint_id, name)
+        checkpoint_path = self.get_checkpoint_path(path)
+
+        self.log.debug('creating checkpoint for notebook {}'.format(name))
+        model = self.get_notebook(name, path)
+        model['name'] = checkpoint_name
+        self.create_notebook(model, checkpoint_path)
+
+        return self.get_checkpoint_model(checkpoint_id, name, path)
+
+    def restore_checkpoint(self, checkpoint_id, name, path=''):
+        checkpoint_name = self.get_checkpoint_name(checkpoint_id, name)
+        checkpoint_path = self.get_checkpoint_path(path)
+
+        self.log.info('Restoring {} from checkpoint {}'.format(name, checkpoint_name))
+        model = self.get_notebook(checkpoint_name, checkpoint_path)
+        model['name'] = name
+        self.create_notebook(model, path)
+
+    def list_checkpoints(self, name, path=''):
+        checkpoint_id = u'checkpoint'
+        checkpoint_name = self.get_checkpoint_name(checkpoint_id, name)
+        checkpoint_path = self.get_checkpoint_path(path)
+
+        key = self._notebook_s3_key(checkpoint_path, checkpoint_name)
+        if key is None:
+            return []
+        else:
+            return [self.get_checkpoint_model(checkpoint_id, name, path)]
