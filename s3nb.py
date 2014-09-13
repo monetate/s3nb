@@ -258,3 +258,12 @@ class S3NotebookManager(NotebookManager):
         self.create_notebook(model, checkpoint_path)
 
         return self.get_checkpoint_model(checkpoint_id, name, path)
+
+    def restore_checkpoint(self, checkpoint_id, name, path=''):
+        checkpoint_name = self.get_checkpoint_name(checkpoint_id, name)
+        checkpoint_path = self.get_checkpoint_path(path)
+
+        self.log.info('Restoring {} from checkpoint {}'.format(name, checkpoint_name))
+        model = self.get_notebook(checkpoint_name, checkpoint_path)
+        model['name'] = name
+        self.create_notebook(model, path)
