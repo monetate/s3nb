@@ -5,7 +5,7 @@ except ImportError:
 
 setup(
     name = 's3nb',
-    version = '0.0.2',
+    version = '0.0.3',
     author = "Monetate Inc.",
     author_email = "graphaelli@monetate.com",
     description = "s3 backed notebook manager for ipython 2.0+",
