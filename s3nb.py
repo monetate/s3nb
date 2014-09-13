@@ -267,3 +267,14 @@ class S3NotebookManager(NotebookManager):
         model = self.get_notebook(checkpoint_name, checkpoint_path)
         model['name'] = name
         self.create_notebook(model, path)
+
+    def list_checkpoints(self, name, path=''):
+        checkpoint_id = u'checkpoint'
+        checkpoint_name = self.get_checkpoint_name(checkpoint_id, name)
+        checkpoint_path = self.get_checkpoint_path(path)
+
+        key = self._notebook_s3_key(checkpoint_path, checkpoint_name)
+        if key is None:
+            return []
+        else:
+            return [self.get_checkpoint_model(checkpoint_id, name, path)]
