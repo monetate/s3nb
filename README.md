@@ -9,7 +9,12 @@
     pip install s3nb
     ```
 
-    or from source:
+    from source with pip:
+    ```bash
+    pip install git+https://github.com/monetate/s3nb
+    ```
+
+    or from source the old fashioned way:
     ```bash
     git clone git@github.com:monetate/s3nb.git
     cd s3nb
