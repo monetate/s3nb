@@ -46,12 +46,7 @@
     fi
     ```
 
-3. Configure AWS variables for boto.  This can go into a shell script that you source before invoking the notebook.
-
-    ``` bash
-    export AWS_ACCESS_KEY_ID="ACCESS_KEY"
-    export AWS_SECRET_ACCESS_KEY="SECRET_KEY"
-    ```
+3. If you haven't already, configure AWS variables for boto.  [Follow these instructions](http://blogs.aws.amazon.com/security/post/Tx3D6U6WSFGOK2H/A-New-and-Standardized-Way-to-Manage-Credentials-in-the-AWS-SDKs).
 
 4. Run
     ``` bash
