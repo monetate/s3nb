@@ -46,7 +46,14 @@
     fi
     ```
 
-3. Run
+3. Configure AWS variables for boto.  This can go into a shell script that you source before invoking the notebook.
+
+    ``` bash
+    export AWS_ACCESS_KEY_ID="ACCESS_KEY"
+    export AWS_SECRET_ACCESS_KEY="SECRET_KEY"
+    ```
+
+4. Run
     ``` bash
     ipython notebook --profile=s3nbserver
     ```
