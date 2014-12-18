@@ -46,7 +46,9 @@
     fi
     ```
 
-3. Run
+3. If you haven't already, configure AWS variables for boto.  [Follow these instructions](http://blogs.aws.amazon.com/security/post/Tx3D6U6WSFGOK2H/A-New-and-Standardized-Way-to-Manage-Credentials-in-the-AWS-SDKs).
+
+4. Run
     ``` bash
     ipython notebook --profile=s3nbserver
     ```
