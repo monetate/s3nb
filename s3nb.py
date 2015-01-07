@@ -85,7 +85,7 @@ class S3NotebookManager(NotebookManager):
         self.s3_bucket, self.s3_prefix = self._parse_s3_uri(self.s3_base_uri, self.s3_key_delimiter)
         # ensure prefix ends with the delimiter
         if not self.s3_prefix.endswith(self.s3_key_delimiter):
-            self.s3_prefix += s3_key_delimiter
+            self.s3_prefix += self.s3_key_delimiter
         self.s3_connection = boto.connect_s3()
         self.bucket = self.s3_connection.get_bucket(self.s3_bucket)
 
