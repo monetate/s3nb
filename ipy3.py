@@ -1,8 +1,12 @@
 from collections import namedtuple
 import datetime
+import tempfile
 
 import boto
 
+from tornado import web
+
+from IPython import nbformat
 from IPython.html.services.contents.manager import ContentsManager
 from IPython.utils import tz
 
@@ -53,6 +57,8 @@ class S3ContentsManager(ContentsManager):
                 key.last_modified, timeformat).replace(tzinfo=tz.UTC),
             'created': None,
             'type': 'notebook',
+            'mimetype': None,
+            'writable': True,
         }
         self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key.name, model))
         return model
@@ -98,7 +104,9 @@ class S3ContentsManager(ContentsManager):
 
     def get(self, path, content=True, type=None, format=None):
         self.log.debug('get: {}'.format(locals()))
-        #  get: {'content': 1, 'path': '', 'self': <ipy3.S3ContentsManager object at 0x10a650e90>, 'type': u'directory', 'format': None}
+        # get: {'content': 1, 'path': '', 'self': <ipy3.S3ContentsManager object at 0x10a650e90>, 'type': u'directory', 'format': None}
+        # get: {'content': False, 'path': u'graphaelli/notebooks/2015-01 Hack.ipynb', 'self': <ipy3.S3ContentsManager object at 0x10d60ce90>, 'type': None, 'format': None}
+
         if type == 'directory':
             key = self._path_to_s3_key(path)
             self.log.debug(key)
@@ -106,6 +114,26 @@ class S3ContentsManager(ContentsManager):
             if content:
                 model['content'] = self.list_dirs(path) + self.list_notebooks(path)
                 model['format'] = 'json'
+            return model
+        elif type == 'notebook' or (type is None and path.endswith('.ipynb')):
+            key = self.s3_prefix + path
+            self.log.debug(key)
+            k = self.bucket.get_key(key)
+            if not k:
+                raise web.HTTPError(400, "{} not found".format(key))
+            model = self._s3_key_notebook_to_model(k, timeformat=S3_TIMEFORMAT_GET_KEY)
+            if content:
+                try:
+                    with tempfile.NamedTemporaryFile() as f:
+                        k.get_file(f)
+                        f.seek(0)
+                        nb = nbformat.read(f, as_version=4)
+                except Exception as e:
+                    raise web.HTTPError(400, u"Unreadable Notebook: %s %s" % (path, e))
+                self.mark_trusted_cells(nb, path)
+                model['content'] = nb
+                model['format'] = 'json'
+                self.validate_notebook_model(model)
             return model
 
     def dir_exists(self, path):
