@@ -68,7 +68,8 @@ class S3ContentsManager(ContentsManager):
             self.s3_prefix += self.s3_key_delimiter
         self.s3_connection = boto.connect_s3()
         self.bucket = self.s3_connection.get_bucket(self.s3_bucket)
-        self.log.debug("initialized")
+        self.log.debug("initialized base_uri: {} bucket: {} prefix: {}".format(
+            self.s3_base_uri, self.s3_bucket, self.s3_prefix))
 
     def list_dirs(self, path):
         self.log.debug('list_dirs: {}'.format(locals()))
