@@ -32,7 +32,7 @@ class S3ContentsManager(ContentsManager):
         self.log.debug("_s3_key_dir_to_model: {}: {}".format(key, key.name))
         model = {
             'name': key.name.rsplit(self.s3_key_delimiter, 2)[-2],
-            'path': key.name,
+            'path': key.name.replace(self.s3_prefix, ''),
             'last_modified': datetime.datetime.utcnow(), # key.last_modified,  will be used in an HTTP header
             'created': None, # key.last_modified,
             'type': 'directory',
@@ -48,7 +48,7 @@ class S3ContentsManager(ContentsManager):
         self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key, key.name))
         model = {
             'name': key.name.rsplit(self.s3_key_delimiter, 1)[-1],
-            'path': key.name,
+            'path': key.name.replace(self.s3_prefix, ''),
             'last_modified': datetime.datetime.strptime(
                 key.last_modified, timeformat).replace(tzinfo=tz.UTC),
             'created': None,
