@@ -27,10 +27,24 @@
     # set this - notebooks will be stored relative to this uri
     S3_NOTEBOOK_URI=s3://path/to/notebooks/
 
+    # and this
+    IPYTHON_MAJOR_VERSION=2
+
     # optionally set this
     PROFILE=s3nbserver
 
     # shouldn't need to edit beyond this point
+
+    ## IPython 2.x
+    IPYNB_MANAGER=S3NotebookManager
+    IPYNB_MANAGER_CFG=notebook_manager_class
+
+    ## IPython 3.x
+    if [ $IPYTHON_MAJOR_VERSION == 3 ]; then
+        IPYNB_MANAGER=S3ContentsManager
+        IPYNB_MANAGER_CFG=contents_manager_class
+    fi
+
     IPYTHONDIR=${IPYTHONDIR:-$HOME/.ipython}
     PROFILE_DIR=${IPYTHONDIR}/profile_${PROFILE}
 
@@ -40,8 +54,8 @@
         mv $IPYNB_CONFIG $IPYNB_CONFIG.orig
         cat > $IPYNB_CONFIG <<EOF
     c = get_config()
-    c.NotebookApp.notebook_manager_class = 's3nb.S3NotebookManager'
-    c.S3NotebookManager.s3_base_uri = '$S3_NOTEBOOK_URI'
+    c.NotebookApp.${IPYNB_MANAGER_CFG} = 's3nb.${IPYNB_MANAGER}'
+    c.${IPYNB_MANAGER}.s3_base_uri = '$S3_NOTEBOOK_URI'
     EOF
     fi
     ```
