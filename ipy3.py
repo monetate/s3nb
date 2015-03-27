@@ -59,6 +59,7 @@ class S3ContentsManager(ContentsManager):
             'type': 'notebook',
             'mimetype': None,
             'writable': True,
+            'format': None,
         }
         self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key.name, model))
         return model
