@@ -26,7 +26,10 @@ class S3ContentsManager(ContentsManager):
         return uri[5:].split(delimiter, 1)
 
     def _path_to_s3_key(self, path):
-        key = self.s3_prefix + path.strip(self.s3_key_delimiter)
+        return self.s3_prefix + path.strip(self.s3_key_delimiter)
+
+    def _path_to_s3_key_dir(self, path):
+        key = self._path_to_s3_key(path)
         # append delimiter if path is non-empty to avoid s3://bucket//
         if path != '':
             key += self.s3_key_delimiter
@@ -80,10 +83,7 @@ class S3ContentsManager(ContentsManager):
 
     def list_dirs(self, path):
         self.log.debug('list_dirs: {}'.format(locals()))
-        key = self.s3_prefix + path.strip(self.s3_key_delimiter)
-        # append delimiter if path is non-empty to avoid s3://bucket//
-        if path != '':
-            key += self.s3_key_delimiter
+        key = self._path_to_s3_key_dir(path)
         self.log.debug('list_dirs: looking in bucket:{} under:{}'.format(self.bucket.name, key))
         dirs = []
         for k in self.bucket.list(key, self.s3_key_delimiter):
@@ -94,7 +94,7 @@ class S3ContentsManager(ContentsManager):
 
     def list_notebooks(self, path=''):
         self.log.debug('list_notebooks: {}'.format(locals()))
-        key = self._path_to_s3_key(path)
+        key = self._path_to_s3_key_dir(path)
         self.log.debug('list_notebooks: looking in bucket:{} under:{}'.format(self.bucket.name, key))
         notebooks = []
         for k in self.bucket.list(key, self.s3_key_delimiter):
@@ -109,16 +109,14 @@ class S3ContentsManager(ContentsManager):
         # get: {'content': False, 'path': u'graphaelli/notebooks/2015-01 Hack.ipynb', 'self': <ipy3.S3ContentsManager object at 0x10d60ce90>, 'type': None, 'format': None}
 
         if type == 'directory':
-            key = self._path_to_s3_key(path)
-            self.log.debug(key)
+            key = self._path_to_s3_key_dir(path)
             model = self._s3_key_dir_to_model(fakekey(key))
             if content:
                 model['content'] = self.list_dirs(path) + self.list_notebooks(path)
                 model['format'] = 'json'
             return model
         elif type == 'notebook' or (type is None and path.endswith('.ipynb')):
-            key = self.s3_prefix + path
-            self.log.debug(key)
+            key = self._path_to_s3_key(path)
             k = self.bucket.get_key(key)
             if not k:
                 raise web.HTTPError(400, "{} not found".format(key))
