@@ -1,13 +1,13 @@
 imported = False
 
 try:
-    from ipy2 import S3NotebookManager
+    from .ipy2 import S3NotebookManager
     imported = True
 except ImportError:
     pass
 
 try:
-    from ipy3 import S3ContentsManager
+    from .ipy3 import S3ContentsManager
     imported = True
 except ImportError:
     pass

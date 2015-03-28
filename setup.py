@@ -14,7 +14,7 @@ setup(
     license = "Python",
     long_description = """This package enables storage of ipynb files in s3""",
     platforms = 'any',
-    py_modules = ['s3nb'],
+    packages = ['s3nb'],
     url = "https://github.com/monetate/s3nb",
     classifiers = [
         "Development Status :: 4 - Beta",
