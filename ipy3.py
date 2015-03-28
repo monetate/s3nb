@@ -147,3 +147,100 @@ class S3ContentsManager(ContentsManager):
     def is_hidden(self, path):
         self.log.debug('is_hidden {}'.format(locals()))
         return False
+
+    def file_exists(self, path):
+        self.log.debug('file_exists: {}'.format(locals()))
+        if path == '':
+            return False
+        k = self.bucket.get_key(path)
+        return k is not None and not k.name.endswith(self.s3_key_delimiter)
+
+    exists = file_exists
+
+    def new_untitled(self, path='', type='', ext=''):
+        self.log.debug('new_untitled: {}'.format(locals()))
+        model = {
+            'mimetype': None,
+            'created': datetime.datetime.utcnow(),
+            'last_modified': datetime.datetime.utcnow(),
+            'writable': True,
+        }
+
+        if type:
+            model['type'] = type
+
+        if ext == '.ipynb':
+            model.setdefault('type', 'notebook')
+        else:
+            model.setdefault('type', 'file')
+
+        insert = ''
+        if model['type'] == 'directory':
+            untitled = self.untitled_directory
+            insert = ' '
+        elif model['type'] == 'notebook':
+            untitled = self.untitled_notebook
+            ext = '.ipynb'
+        elif model['type'] == 'file':
+            untitled = self.untitled_file
+        else:
+            raise web.HTTPError(400, "Unexpected model type: %r" % model['type'])
+
+        name = self.increment_filename(untitled + ext, self.s3_prefix + path, insert=insert)
+        path = u'{0}/{1}'.format(path, name)
+        model.update({
+            'name': name,
+            'path': path,
+        })
+        return self.new(model, path)
+
+    def _save_notebook(self, path, nb):
+        self.log.debug('_save_notebook: {}'.format(locals()))
+
+        k = boto.s3.key.Key(self.bucket)
+        k.key = self._path_to_s3_key(path)
+
+        try:
+            with tempfile.NamedTemporaryFile() as f:
+                nbformat.write(nb, f, version=nbformat.NO_CONVERT)
+                f.seek(0)
+                k.set_contents_from_file(f)
+        except Exception as e:
+            raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s" % (path, e))
+
+    def save(self, model, path):
+        """ very similar to filemanager.save """
+        self.log.debug('save: {}'.format(locals()))
+
+        if 'type' not in model:
+            raise web.HTTPError(400, u'No file type provided')
+        if 'content' not in model and model['type'] != 'directory':
+            raise web.HTTPError(400, u'No file content provided')
+
+#        self.run_pre_save_hook(model=model, path=path)
+
+        if model['type'] == 'notebook':
+            nb = nbformat.from_dict(model['content'])
+            self.check_and_sign(nb, path)
+            self._save_notebook(path, nb)
+        elif model['type'] == 'file':
+            raise NotImplementedError("file save coming soon")
+        elif model['type'] == 'directory':
+            pass  # keep symmetry with filemanager.save
+        else:
+            raise web.HTTPError(400, "Unhandled contents type: %s" % model['type'])
+
+        validation_message = None
+        if model['type'] == 'notebook':
+            self.validate_notebook_model(model)
+            validation_message = model.get('message', None)
+
+        model = self.get(path, content=False)
+        if validation_message:
+            model['message'] = validation_message
+
+#        self.run_post_save_hook(model=model, os_path=path)
+
+        model['content'] = None
+
+        return model
