@@ -54,6 +54,7 @@ class S3ContentsManager(ContentsManager):
     def _s3_key_notebook_to_model(self, key, timeformat):
         self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key, key.name))
         model = {
+            'content': None,
             'name': key.name.rsplit(self.s3_key_delimiter, 1)[-1],
             'path': key.name.replace(self.s3_prefix, ''),
             'last_modified': datetime.datetime.strptime(
@@ -213,6 +214,19 @@ class S3ContentsManager(ContentsManager):
                 k.set_contents_from_file(f)
         except Exception as e:
             raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s" % (path, e))
+
+    def rename(self, old_path, new_path):
+        if new_path == old_path:
+            return
+
+        src_key = self._path_to_s3_key(old_path)
+        dst_key = self._path_to_s3_key(new_path)
+        self.log.debug('copying notebook in bucket: {} from {} to {}'.format(self.bucket.name, src_key, dst_key))
+        if self.bucket.get_key(dst_key):
+            raise web.HTTPError(409, u'Notebook with name already exists: %s' % dst_key)
+        self.bucket.copy_key(dst_key, self.bucket.name, src_key)
+        self.log.debug('removing notebook in bucket: {} : {}'.format(self.bucket.name, src_key))
+        self.bucket.delete_key(src_key)
 
     def save(self, model, path):
         """ very similar to filemanager.save """
