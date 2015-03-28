@@ -103,6 +103,12 @@ class S3ContentsManager(ContentsManager):
                 self.log.debug('list_notebooks: found {}'.format(k.name))
         return notebooks
 
+    def delete(self, path):
+        self.log.debug('delete: {}'.format(locals()))
+        key = self._path_to_s3_key(path)
+        self.log.debug('removing notebook in bucket: {} : {}'.format(self.bucket.name, key))
+        self.bucket.delete_key(key)
+
     def get(self, path, content=True, type=None, format=None):
         self.log.debug('get: {}'.format(locals()))
         # get: {'content': 1, 'path': '', 'self': <ipy3.S3ContentsManager object at 0x10a650e90>, 'type': u'directory', 'format': None}
