@@ -21,8 +21,6 @@ from IPython.utils.traitlets import Unicode
 from IPython.utils import tz
 
 
-__version__ = '0.0.3'
-
 # s3 return different time formats in different situations apparently
 S3_TIMEFORMAT_GET_KEY = '%a, %d %b %Y %H:%M:%S GMT'
 S3_TIMEFORMAT_BUCKET_LIST = '%Y-%m-%dT%H:%M:%S.000Z'
