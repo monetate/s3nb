@@ -144,12 +144,9 @@ class S3ContentsManager(ContentsManager):
 
     def dir_exists(self, path):
         self.log.debug('dir_exists: {}'.format(locals()))
-        key = self._path_to_s3_key(path)
-        try:
-            next(iter(self.bucket.list(key, self.s3_key_delimiter)))
-            return True
-        except StopIteration:
-            return False
+        key_name = path + self.s3_key_delimiter
+        
+        return path == '' or self.bucket.get_key(key_name) is not None
 
     def is_hidden(self, path):
         self.log.debug('is_hidden {}'.format(locals()))
@@ -161,8 +158,6 @@ class S3ContentsManager(ContentsManager):
             return False
         k = self.bucket.get_key(path)
         return k is not None and not k.name.endswith(self.s3_key_delimiter)
-
-    exists = file_exists
 
     def new_untitled(self, path='', type='', ext=''):
         self.log.debug('new_untitled: {}'.format(locals()))
@@ -215,6 +210,17 @@ class S3ContentsManager(ContentsManager):
         except Exception as e:
             raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s" % (path, e))
 
+    def _save_directory(self, path):
+        self.log.debug('_save_directory: {}'.format(locals()))
+
+        k = boto.s3.key.Key(self.bucket)
+        k.key = self._path_to_s3_key_dir(path)
+
+        try:
+            k.set_contents_from_string('')
+        except Exception as e:
+            raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s" % (path, e))
+
     def rename(self, old_path, new_path):
         if new_path == old_path:
             return
@@ -237,7 +243,7 @@ class S3ContentsManager(ContentsManager):
         if 'content' not in model and model['type'] != 'directory':
             raise web.HTTPError(400, u'No file content provided')
 
-#        self.run_pre_save_hook(model=model, path=path)
+		#        self.run_pre_save_hook(model=model, path=path)
 
         if model['type'] == 'notebook':
             nb = nbformat.from_dict(model['content'])
@@ -246,7 +252,7 @@ class S3ContentsManager(ContentsManager):
         elif model['type'] == 'file':
             raise NotImplementedError("file save coming soon")
         elif model['type'] == 'directory':
-            pass  # keep symmetry with filemanager.save
+            self._save_directory(path)
         else:
             raise web.HTTPError(400, "Unhandled contents type: %s" % model['type'])
 
@@ -255,12 +261,13 @@ class S3ContentsManager(ContentsManager):
             self.validate_notebook_model(model)
             validation_message = model.get('message', None)
 
-        model = self.get(path, content=False)
+        model = self.get(path, content=False, type=model['type'])
         if validation_message:
             model['message'] = validation_message
 
-#        self.run_post_save_hook(model=model, os_path=path)
+		#        self.run_post_save_hook(model=model, os_path=path)
 
+        self.log.debug(str(model))
         model['content'] = None
 
         return model
