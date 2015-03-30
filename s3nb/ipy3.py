@@ -237,7 +237,7 @@ class S3ContentsManager(ContentsManager):
         if 'content' not in model and model['type'] != 'directory':
             raise web.HTTPError(400, u'No file content provided')
 
-#        self.run_pre_save_hook(model=model, path=path)
+		#        self.run_pre_save_hook(model=model, path=path)
 
         if model['type'] == 'notebook':
             nb = nbformat.from_dict(model['content'])
@@ -259,7 +259,7 @@ class S3ContentsManager(ContentsManager):
         if validation_message:
             model['message'] = validation_message
 
-#        self.run_post_save_hook(model=model, os_path=path)
+		#        self.run_post_save_hook(model=model, os_path=path)
 
         model['content'] = None
 
