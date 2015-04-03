@@ -57,6 +57,23 @@ class S3ContentsManager(ContentsManager):
         self.log.debug("_s3_key_dir_to_model: {}: {}".format(key.name, model))
         return model
 
+    def _s3_key_file_to_model(self, key, timeformat):
+        self.log.debug("_s3_key_file_to_model: {}: {}".format(key, key.name))
+        model = {
+            'content': None,
+            'name': key.name.rsplit(self.s3_key_delimiter, 1)[-1],
+            'path': key.name.replace(self.s3_prefix, ''),
+            'last_modified': datetime.datetime.strptime(
+                key.last_modified, timeformat).replace(tzinfo=tz.UTC),
+            'created': None,
+            'type': 'file',
+            'mimetype': None,
+            'writable': True,
+            'format': None,
+        }
+        self.log.debug("_s3_key_file_to_model: {}: {}".format(key.name, model))
+        return model
+
     def _s3_key_notebook_to_model(self, key, timeformat):
         self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key, key.name))
         model = {
@@ -99,6 +116,17 @@ class S3ContentsManager(ContentsManager):
                 self.log.debug('list_dirs: found {}'.format(k.name))
         return dirs
 
+    def list_files(self, path):
+        self.log.debug('list_files: {}'.format(locals()))
+        key = self._path_to_s3_key_dir(path)
+        self.log.debug('list_files: looking in bucket:{} under:{}'.format(self.bucket.name, key))
+        files = []
+        for k in self.bucket.list(key, self.s3_key_delimiter):
+            if not k.name.endswith(self.s3_key_delimiter) and not k.name.endswith('.ipynb') and k.name != key:
+                files.append(self._s3_key_file_to_model(k, timeformat=S3_TIMEFORMAT_BUCKET_LIST))
+                self.log.debug('list_files: found {}'.format(k.name))
+        return files
+
     def list_notebooks(self, path=''):
         self.log.debug('list_notebooks: {}'.format(locals()))
         key = self._path_to_s3_key_dir(path)
@@ -125,7 +153,7 @@ class S3ContentsManager(ContentsManager):
             key = self._path_to_s3_key_dir(path)
             model = self._s3_key_dir_to_model(fakekey(key))
             if content:
-                model['content'] = self.list_dirs(path) + self.list_notebooks(path)
+                model['content'] = self.list_dirs(path) + self.list_notebooks(path) + self.list_files(path)
                 model['format'] = 'json'
             return model
         elif type == 'notebook' or (type is None and path.endswith('.ipynb')):
@@ -146,6 +174,22 @@ class S3ContentsManager(ContentsManager):
                 model['content'] = nb
                 model['format'] = 'json'
                 self.validate_notebook_model(model)
+            return model
+        else: # assume that it is file
+            key = self._path_to_s3_key(path)
+            k = self.bucket.get_key(key)
+
+            model = self._s3_key_file_to_model(k, timeformat=S3_TIMEFORMAT_GET_KEY)
+
+            if content:
+                try:
+                    model['content'] = k.get_contents_as_string()
+                except Exception as e:
+                    raise web.HTTPError(400, u"Unreadable file: %s %s" % (path, e))
+
+                model['mimetype'] = 'text/plain'
+                model['format'] = 'text'
+
             return model
 
     def dir_exists(self, path):
@@ -168,7 +212,8 @@ class S3ContentsManager(ContentsManager):
         self.log.debug('file_exists: {}'.format(locals()))
         if path == '':
             return False
-        k = self.bucket.get_key(path)
+        key = self._path_to_s3_key(path)
+        k = self.bucket.get_key(key)
         return k is not None and not k.name.endswith(self.s3_key_delimiter)
 
     exists = file_exists
@@ -209,6 +254,23 @@ class S3ContentsManager(ContentsManager):
             'path': path,
         })
         return self.new(model, path)
+
+    def _save_file(self, path, content, format):
+        if format != 'text':
+            raise web.HTTPError(400, u'Only text files are supported')
+        
+        try:
+            bcontent = content.encode('utf8')
+        except Exception as e:
+            raise web.HTTPError(400, u'Encoding error saving {}: {}'.format(content, e))
+
+        k = boto.s3.key.Key(self.bucket)
+        k.key = self._path_to_s3_key(path)
+
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(content)
+            f.seek(0)
+            k.set_contents_from_file(f)
 
     def _save_notebook(self, path, nb):
         self.log.debug('_save_notebook: {}'.format(locals()))
@@ -254,7 +316,7 @@ class S3ContentsManager(ContentsManager):
             self.check_and_sign(nb, path)
             self._save_notebook(path, nb)
         elif model['type'] == 'file':
-            raise NotImplementedError("file save coming soon")
+            self._save_file(path, model['content'], model.get('format'))
         elif model['type'] == 'directory':
             pass  # keep symmetry with filemanager.save
         else:
@@ -265,7 +327,7 @@ class S3ContentsManager(ContentsManager):
             self.validate_notebook_model(model)
             validation_message = model.get('message', None)
 
-        model = self.get(path, content=False)
+        model = self.get(path, content=False, type=model['type'])
         if validation_message:
             model['message'] = validation_message
 
