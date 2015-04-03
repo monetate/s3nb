@@ -66,3 +66,10 @@
     ``` bash
     ipython notebook --profile=s3nbserver
     ```
+
+## Development
+
+1. Provision a virtual machine with `vagrant up`
+2. Create an IPython profile with `make configure -e S3_BASE_URI=YOUR_BUCKET`
+3. Share you AWS credentials with the virtual machine with `make configure -e AWS_USER=YOUR_USER`
+4. Run the notebook server with `make run`
