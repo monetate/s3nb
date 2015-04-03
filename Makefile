@@ -3,7 +3,7 @@ SSH=vagrant ssh
 CONFIG_FILE=ipython/profile_s3nb/ipython_notebook_config.py
 IPYTHON_DIR=/vagrant/ipython
 
-.PHONY=clean configure creds run
+.PHONY=clean configure creds kill restart run
 
 clean:
 	rm -rf ipython/ credentials
@@ -20,5 +20,10 @@ creds:
 	grep -A2 ${AWS_USER} ~/.aws/credentials | sed 's/${AWS_USER}/default/g' > credentials
 	${SSH} -c "mkdir -p ~/.aws && ln -sf /vagrant/credentials ~/.aws/credentials"
 
+kill:
+	${SSH} -c "tmux kill-session -t server || true"
+
+restart: kill run;
+
 run:
-	${SSH} -c "tmux new-session -d -n run -s server 'PYTHONPATH=/vagrant ipython notebook --ipython-dir=${IPYTHON_DIR} --profile=s3nb --ip=0.0.0.0 --no-browser'"
+	${SSH} -c "tmux new-session -d -n run -s server 'PYTHONPATH=/vagrant ipython notebook --ipython-dir=${IPYTHON_DIR} --profile=s3nb --ip=0.0.0.0 --no-browser > /vagrant/s3nb.log 2>&1'"

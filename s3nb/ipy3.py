@@ -35,10 +35,16 @@ class S3ContentsManager(ContentsManager):
             key += self.s3_key_delimiter
         return key
 
+    def _get_key_dir_name(self, name):
+        try:
+            return name.rsplit(self.s3_key_delimiter, 2)[-2]
+        except IndexError:
+            return ''
+
     def _s3_key_dir_to_model(self, key):
         self.log.debug("_s3_key_dir_to_model: {}: {}".format(key, key.name))
         model = {
-            'name': key.name.rsplit(self.s3_key_delimiter, 2)[-2],
+            'name': self._get_key_dir_name(key.name),
             'path': key.name.replace(self.s3_prefix, ''),
             'last_modified': datetime.datetime.utcnow(), # key.last_modified,  will be used in an HTTP header
             'created': None, # key.last_modified,
@@ -75,7 +81,7 @@ class S3ContentsManager(ContentsManager):
         self.s3_key_delimiter = config.get('s3_key_delimiter', '/')
         self.s3_bucket, self.s3_prefix = self._parse_s3_uri(self.s3_base_uri, self.s3_key_delimiter)
         # ensure prefix ends with the delimiter
-        if not self.s3_prefix.endswith(self.s3_key_delimiter):
+        if not self.s3_prefix.endswith(self.s3_key_delimiter) and self.s3_prefix != '':
             self.s3_prefix += self.s3_key_delimiter
         self.s3_connection = boto.connect_s3()
         self.bucket = self.s3_connection.get_bucket(self.s3_bucket)
@@ -145,11 +151,14 @@ class S3ContentsManager(ContentsManager):
     def dir_exists(self, path):
         self.log.debug('dir_exists: {}'.format(locals()))
         key = self._path_to_s3_key(path)
-        try:
-            next(iter(self.bucket.list(key, self.s3_key_delimiter)))
+        if path == '':
             return True
-        except StopIteration:
-            return False
+        else:
+            try:
+                next(iter(self.bucket.list(key, self.s3_key_delimiter)))
+                return True
+            except StopIteration:
+                return False
 
     def is_hidden(self, path):
         self.log.debug('is_hidden {}'.format(locals()))
@@ -216,6 +225,7 @@ class S3ContentsManager(ContentsManager):
             raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s" % (path, e))
 
     def rename(self, old_path, new_path):
+        self.log.debug('rename: {}'.format(locals()))
         if new_path == old_path:
             return
 
