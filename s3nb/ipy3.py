@@ -94,7 +94,7 @@ class S3ContentsManager(ContentsManager):
         self.log.debug('list_dirs: looking in bucket:{} under:{}'.format(self.bucket.name, key))
         dirs = []
         for k in self.bucket.list(key, self.s3_key_delimiter):
-            if k.name.endswith(self.s3_key_delimiter):
+            if k.name.endswith(self.s3_key_delimiter) and k.name != key:
                 dirs.append(self._s3_key_dir_to_model(k))
                 self.log.debug('list_dirs: found {}'.format(k.name))
         return dirs
