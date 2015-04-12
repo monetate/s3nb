@@ -7,6 +7,7 @@ import boto
 from tornado import web
 
 from IPython import nbformat
+from IPython.html.services.contents.filecheckpoints import GenericFileCheckpoints
 from IPython.html.services.contents.manager import ContentsManager
 from IPython.utils import tz
 
@@ -104,6 +105,9 @@ class S3ContentsManager(ContentsManager):
         self.bucket = self.s3_connection.get_bucket(self.s3_bucket)
         self.log.debug("initialized base_uri: {} bucket: {} prefix: {}".format(
             self.s3_base_uri, self.s3_bucket, self.s3_prefix))
+
+    def _checkpoints_class_default(self):
+        return GenericFileCheckpoints
 
     def list_dirs(self, path):
         self.log.debug('list_dirs: {}'.format(locals()))

@@ -3,3 +3,4 @@
 ipython/
 credentials
 s3nb.log
+.checkpoints/
