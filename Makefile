@@ -17,6 +17,7 @@ configure:
 	echo "c.NotebookApp.log_level = 'DEBUG'" >> ${CONFIG_FILE}
 	echo "c.NotebookApp.contents_manager_class = 's3nb.S3ContentsManager'" >> ${CONFIG_FILE}
 	echo "c.S3ContentsManager.s3_base_uri = '${S3_BASE_URI}'" >> ${CONFIG_FILE}
+	echo "c.S3ContentsManager.checkpoints_kwargs = {'root_dir': '/vagrant/.checkpoints'}" 
 
 creds:
 	grep -A2 ${AWS_USER} ~/.aws/credentials | sed 's/${AWS_USER}/default/g' > credentials

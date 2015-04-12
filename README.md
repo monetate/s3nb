@@ -30,6 +30,9 @@
     # and this
     IPYTHON_MAJOR_VERSION=2
 
+    # optionally set this - checkpoints will be stored locally, relative to this path (for IPython 3)
+    CHECKPOINT_ROOT_DIR=~/.checkpoints
+
     # optionally set this
     PROFILE=s3nbserver
 
@@ -57,6 +60,11 @@
     c.NotebookApp.${IPYNB_MANAGER_CFG} = 's3nb.${IPYNB_MANAGER}'
     c.${IPYNB_MANAGER}.s3_base_uri = '$S3_NOTEBOOK_URI'
     EOF
+    fi
+
+
+    if [ $IPYTHON_MAJOR_VERSION == 3 ]; then
+        echo "c.S3ContentsManager.checkpoints_kwargs = {'root_dir': '${CHECKPOINT_ROOT_DIR}'}" 
     fi
     ```
 
