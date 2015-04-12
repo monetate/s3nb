@@ -3,6 +3,8 @@ SSH=vagrant ssh
 CONFIG_FILE=ipython/profile_s3nb/ipython_notebook_config.py
 IPYTHON_DIR=/vagrant/ipython
 
+AWS_USER=s3nb
+
 .PHONY=clean configure creds kill restart run
 
 clean:
