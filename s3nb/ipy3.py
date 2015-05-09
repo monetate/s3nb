@@ -1,3 +1,4 @@
+import codecs
 from collections import namedtuple
 import datetime
 import tempfile
@@ -168,10 +169,13 @@ class S3ContentsManager(ContentsManager):
             model = self._s3_key_notebook_to_model(k, timeformat=S3_TIMEFORMAT_GET_KEY)
             if content:
                 try:
-                    with tempfile.NamedTemporaryFile() as f:
-                        k.get_file(f)
-                        f.seek(0)
-                        nb = nbformat.read(f, as_version=4)
+                    with tempfile.NamedTemporaryFile() as t:
+                        # download bytes
+                        k.get_file(t)
+                        t.seek(0)
+                        # read with utf-8 encoding
+                        with codecs.open(t.name, mode='r', encoding='utf-8') as f:
+                            nb = nbformat.read(f, as_version=4)
                 except Exception as e:
                     raise web.HTTPError(400, u"Unreadable Notebook: %s %s" % (path, e))
                 self.mark_trusted_cells(nb, path)
@@ -283,10 +287,11 @@ class S3ContentsManager(ContentsManager):
         k.key = self._path_to_s3_key(path)
 
         try:
-            with tempfile.NamedTemporaryFile() as f:
+            with tempfile.NamedTemporaryFile() as t, codecs.open(t.name, mode='w', encoding='utf-8') as f:
+                # write tempfile with utf-8 encoding
                 nbformat.write(nb, f, version=nbformat.NO_CONVERT)
-                f.seek(0)
-                k.set_contents_from_file(f)
+                # upload as bytes (t's fp didn't advance)
+                k.set_contents_from_file(t)
         except Exception as e:
             raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s" % (path, e))
 
