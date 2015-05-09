@@ -44,7 +44,7 @@ class S3ContentsManager(ContentsManager):
             return ''
 
     def _s3_key_dir_to_model(self, key):
-        self.log.debug("_s3_key_dir_to_model: {}: {}".format(key, key.name))
+        self.log.debug("_s3_key_dir_to_model: %s: %s", key, key.name)
         model = {
             'name': self._get_key_dir_name(key.name),
             'path': key.name.replace(self.s3_prefix, ''),
@@ -56,11 +56,11 @@ class S3ContentsManager(ContentsManager):
             'writable': True,
             'format': None,
         }
-        self.log.debug("_s3_key_dir_to_model: {}: {}".format(key.name, model))
+        self.log.debug("_s3_key_dir_to_model: %s: %s", key.name, model)
         return model
 
     def _s3_key_file_to_model(self, key, timeformat):
-        self.log.debug("_s3_key_file_to_model: {}: {}".format(key, key.name))
+        self.log.debug("_s3_key_file_to_model: %s: %s", key, key.name)
         model = {
             'content': None,
             'name': key.name.rsplit(self.s3_key_delimiter, 1)[-1],
@@ -73,11 +73,11 @@ class S3ContentsManager(ContentsManager):
             'writable': True,
             'format': None,
         }
-        self.log.debug("_s3_key_file_to_model: {}: {}".format(key.name, model))
+        self.log.debug("_s3_key_file_to_model: %s: %s", key.name, model)
         return model
 
     def _s3_key_notebook_to_model(self, key, timeformat):
-        self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key, key.name))
+        self.log.debug("_s3_key_notebook_to_model: %s: %s", key, key.name)
         model = {
             'content': None,
             'name': key.name.rsplit(self.s3_key_delimiter, 1)[-1],
@@ -90,7 +90,7 @@ class S3ContentsManager(ContentsManager):
             'writable': True,
             'format': None,
         }
-        self.log.debug("_s3_key_notebook_to_model: {}: {}".format(key.name, model))
+        self.log.debug("_s3_key_notebook_to_model: %s: %s", key.name, model)
         return model
 
     def __init__(self, **kwargs):
@@ -104,53 +104,53 @@ class S3ContentsManager(ContentsManager):
             self.s3_prefix += self.s3_key_delimiter
         self.s3_connection = boto.connect_s3()
         self.bucket = self.s3_connection.get_bucket(self.s3_bucket)
-        self.log.debug("initialized base_uri: {} bucket: {} prefix: {}".format(
-            self.s3_base_uri, self.s3_bucket, self.s3_prefix))
+        self.log.debug("initialized base_uri: %s bucket: %s prefix: %s",
+            self.s3_base_uri, self.s3_bucket, self.s3_prefix)
 
     def _checkpoints_class_default(self):
         return GenericFileCheckpoints
 
     def list_dirs(self, path):
-        self.log.debug('list_dirs: {}'.format(locals()))
+        self.log.debug('list_dirs: %s', locals())
         key = self._path_to_s3_key_dir(path)
-        self.log.debug('list_dirs: looking in bucket:{} under:{}'.format(self.bucket.name, key))
+        self.log.debug('list_dirs: looking in bucket:%s under:%s', self.bucket.name, key)
         dirs = []
         for k in self.bucket.list(key, self.s3_key_delimiter):
             if k.name.endswith(self.s3_key_delimiter) and k.name != key:
                 dirs.append(self._s3_key_dir_to_model(k))
-                self.log.debug('list_dirs: found {}'.format(k.name))
+                self.log.debug('list_dirs: found %s', k.name)
         return dirs
 
     def list_files(self, path):
-        self.log.debug('list_files: {}'.format(locals()))
+        self.log.debug('list_files: %s', locals())
         key = self._path_to_s3_key_dir(path)
-        self.log.debug('list_files: looking in bucket:{} under:{}'.format(self.bucket.name, key))
+        self.log.debug('list_files: looking in bucket:%s under:%s', self.bucket.name, key)
         files = []
         for k in self.bucket.list(key, self.s3_key_delimiter):
             if not k.name.endswith(self.s3_key_delimiter) and not k.name.endswith('.ipynb') and k.name != key:
                 files.append(self._s3_key_file_to_model(k, timeformat=S3_TIMEFORMAT_BUCKET_LIST))
-                self.log.debug('list_files: found {}'.format(k.name))
+                self.log.debug('list_files: found %s', k.name)
         return files
 
     def list_notebooks(self, path=''):
-        self.log.debug('list_notebooks: {}'.format(locals()))
+        self.log.debug('list_notebooks: %s', locals())
         key = self._path_to_s3_key_dir(path)
-        self.log.debug('list_notebooks: looking in bucket:{} under:{}'.format(self.bucket.name, key))
+        self.log.debug('list_notebooks: looking in bucket:%s under:%s', self.bucket.name, key)
         notebooks = []
         for k in self.bucket.list(key, self.s3_key_delimiter):
             if k.name.endswith('.ipynb'):
                 notebooks.append(self._s3_key_notebook_to_model(k, timeformat=S3_TIMEFORMAT_BUCKET_LIST))
-                self.log.debug('list_notebooks: found {}'.format(k.name))
+                self.log.debug('list_notebooks: found %s', k.name)
         return notebooks
 
     def delete(self, path):
-        self.log.debug('delete: {}'.format(locals()))
+        self.log.debug('delete: %s', locals())
         key = self._path_to_s3_key(path)
-        self.log.debug('removing notebook in bucket: {} : {}'.format(self.bucket.name, key))
+        self.log.debug('removing notebook in bucket: %s : %s', self.bucket.name, key)
         self.bucket.delete_key(key)
 
     def get(self, path, content=True, type=None, format=None):
-        self.log.debug('get: {}'.format(locals()))
+        self.log.debug('get: %s', locals())
         # get: {'content': 1, 'path': '', 'self': <ipy3.S3ContentsManager object at 0x10a650e90>, 'type': u'directory', 'format': None}
         # get: {'content': False, 'path': u'graphaelli/notebooks/2015-01 Hack.ipynb', 'self': <ipy3.S3ContentsManager object at 0x10d60ce90>, 'type': None, 'format': None}
 
@@ -201,7 +201,7 @@ class S3ContentsManager(ContentsManager):
             return model
 
     def dir_exists(self, path):
-        self.log.debug('dir_exists: {}'.format(locals()))
+        self.log.debug('dir_exists: %s', locals())
         key = self._path_to_s3_key(path)
         if path == '':
             return True
@@ -213,11 +213,11 @@ class S3ContentsManager(ContentsManager):
                 return False
 
     def is_hidden(self, path):
-        self.log.debug('is_hidden {}'.format(locals()))
+        self.log.debug('is_hidden %s', locals())
         return False
 
     def file_exists(self, path):
-        self.log.debug('file_exists: {}'.format(locals()))
+        self.log.debug('file_exists: %s', locals())
         if path == '':
             return False
         key = self._path_to_s3_key(path)
@@ -227,7 +227,7 @@ class S3ContentsManager(ContentsManager):
     exists = file_exists
 
     def new_untitled(self, path='', type='', ext=''):
-        self.log.debug('new_untitled: {}'.format(locals()))
+        self.log.debug('new_untitled: %s', locals())
         model = {
             'mimetype': None,
             'created': datetime.datetime.utcnow(),
@@ -266,7 +266,7 @@ class S3ContentsManager(ContentsManager):
     def _save_file(self, path, content, format):
         if format != 'text':
             raise web.HTTPError(400, u'Only text files are supported')
-        
+
         try:
             bcontent = content.encode('utf8')
         except Exception as e:
@@ -281,7 +281,7 @@ class S3ContentsManager(ContentsManager):
             k.set_contents_from_file(f)
 
     def _save_notebook(self, path, nb):
-        self.log.debug('_save_notebook: {}'.format(locals()))
+        self.log.debug('_save_notebook: %s', locals())
 
         k = boto.s3.key.Key(self.bucket)
         k.key = self._path_to_s3_key(path)
@@ -296,22 +296,22 @@ class S3ContentsManager(ContentsManager):
             raise web.HTTPError(400, u"Unexpected Error Writing Notebook: %s %s" % (path, e))
 
     def rename(self, old_path, new_path):
-        self.log.debug('rename: {}'.format(locals()))
+        self.log.debug('rename: %s', locals())
         if new_path == old_path:
             return
 
         src_key = self._path_to_s3_key(old_path)
         dst_key = self._path_to_s3_key(new_path)
-        self.log.debug('copying notebook in bucket: {} from {} to {}'.format(self.bucket.name, src_key, dst_key))
+        self.log.debug('copying notebook in bucket: %s from %s to %s', self.bucket.name, src_key, dst_key)
         if self.bucket.get_key(dst_key):
             raise web.HTTPError(409, u'Notebook with name already exists: %s' % dst_key)
         self.bucket.copy_key(dst_key, self.bucket.name, src_key)
-        self.log.debug('removing notebook in bucket: {} : {}'.format(self.bucket.name, src_key))
+        self.log.debug('removing notebook in bucket: %s : %s', self.bucket.name, src_key)
         self.bucket.delete_key(src_key)
 
     def save(self, model, path):
         """ very similar to filemanager.save """
-        self.log.debug('save: {}'.format(locals()))
+        self.log.debug('save: %s', locals())
 
         if 'type' not in model:
             raise web.HTTPError(400, u'No file type provided')
