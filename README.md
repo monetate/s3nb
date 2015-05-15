@@ -28,7 +28,7 @@
     S3_NOTEBOOK_URI=s3://path/to/notebooks/
 
     # and this
-    IPYTHON_MAJOR_VERSION=2
+    IPYTHON_MAJOR_VERSION=3
 
     # optionally set this - checkpoints will be stored locally, relative to this path (for IPython 3)
     CHECKPOINT_ROOT_DIR=~/.checkpoints
