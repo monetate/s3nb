@@ -42,14 +42,8 @@
     IPYNB_MANAGER=S3NotebookManager
     IPYNB_MANAGER_CFG=notebook_manager_class
 
-    ## IPython 3.x
-    if [ $IPYTHON_MAJOR_VERSION == 3 ]; then
-        IPYNB_MANAGER=S3ContentsManager
-        IPYNB_MANAGER_CFG=contents_manager_class
-    fi
-
-    ## IPython 4.x
-    if [ $IPYTHON_MAJOR_VERSION == 4 ]; then
+    ## IPython 3.x or 4.x
+    if [ $IPYTHON_MAJOR_VERSION == 3 ] || [ $IPYTHON_MAJOR_VERSION == 4 ]; then
         IPYNB_MANAGER=S3ContentsManager
         IPYNB_MANAGER_CFG=contents_manager_class
     fi
