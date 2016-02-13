@@ -69,11 +69,7 @@
     fi
 
 
-    if [ $IPYTHON_MAJOR_VERSION == 3 ]; then
-        echo "c.S3ContentsManager.checkpoints_kwargs = {'root_dir': '${CHECKPOINT_ROOT_DIR}'}"  >> ${IPYNB_CONFIG}
-    fi
-
-    if [ $IPYTHON_MAJOR_VERSION == 4 ]; then
+    if  [ $IPYTHON_MAJOR_VERSION == 3 ] || [$IPYTHON_MAJOR_VERSION == 4 ] ; then
         echo "c.S3ContentsManager.checkpoints_kwargs = {'root_dir': '${CHECKPOINT_ROOT_DIR}'}"  >> ${IPYNB_CONFIG}
     fi
     ```
