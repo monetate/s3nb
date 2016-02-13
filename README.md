@@ -28,7 +28,7 @@
     S3_NOTEBOOK_URI=s3://path/to/notebooks/
 
     # and this
-    IPYTHON_MAJOR_VERSION=3
+    IPYTHON_MAJOR_VERSION=4
 
     # optionally set this - checkpoints will be stored locally, relative to this path (for IPython 3)
     CHECKPOINT_ROOT_DIR=~/.checkpoints
@@ -44,6 +44,12 @@
 
     ## IPython 3.x
     if [ $IPYTHON_MAJOR_VERSION == 3 ]; then
+        IPYNB_MANAGER=S3ContentsManager
+        IPYNB_MANAGER_CFG=contents_manager_class
+    fi
+
+    ## IPython 4.x
+    if [ $IPYTHON_MAJOR_VERSION == 4 ]; then
         IPYNB_MANAGER=S3ContentsManager
         IPYNB_MANAGER_CFG=contents_manager_class
     fi
@@ -66,6 +72,10 @@
     if [ $IPYTHON_MAJOR_VERSION == 3 ]; then
         echo "c.S3ContentsManager.checkpoints_kwargs = {'root_dir': '${CHECKPOINT_ROOT_DIR}'}"  >> ${IPYNB_CONFIG}
     fi
+
+    if [ $IPYTHON_MAJOR_VERSION == 4 ]; then
+        echo "c.S3ContentsManager.checkpoints_kwargs = {'root_dir': '${CHECKPOINT_ROOT_DIR}'}"  >> ${IPYNB_CONFIG}
+    fi
     ```
 
 3. If you haven't already, configure AWS variables for boto.  [Follow these instructions](http://blogs.aws.amazon.com/security/post/Tx3D6U6WSFGOK2H/A-New-and-Standardized-Way-to-Manage-Credentials-in-the-AWS-SDKs).
@@ -79,5 +89,5 @@
 
 1. Provision a virtual machine with `vagrant up`
 2. Create an IPython profile with `make configure -e S3_BASE_URI=YOUR_BUCKET`
-3. Share you AWS credentials with the virtual machine with `make configure -e AWS_USER=YOUR_USER`
+4. Share you AWS credentials with the virtual machine with `make creds -e AWS_USER=YOUR_USER`
 4. Run the notebook server with `make run`

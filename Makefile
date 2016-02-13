@@ -1,17 +1,15 @@
 SSH=vagrant ssh
 
-CONFIG_FILE=ipython/profile_s3nb/ipython_notebook_config.py
-IPYTHON_DIR=/vagrant/ipython
+CONFIG_FILE=config/jupyter_notebook_config.py
 
 AWS_USER=s3nb
 
 .PHONY=clean configure creds kill restart run
 
 clean:
-	rm -rf ipython/ credentials
+	rm -rf clean/ credentials
 
 configure:
-	${SSH} -c "ipython profile create --ipython-dir=${IPYTHON_DIR} s3nb"
 	mv ${CONFIG_FILE} ${CONFIG_FILE}.orig
 	echo "c = get_config()" >> ${CONFIG_FILE}
 	echo "c.NotebookApp.log_level = 'DEBUG'" >> ${CONFIG_FILE}
@@ -29,4 +27,4 @@ kill:
 restart: kill run;
 
 run:
-	${SSH} -c "tmux new-session -d -n run -s server 'PYTHONPATH=/vagrant ipython notebook --ipython-dir=${IPYTHON_DIR} --profile=s3nb --ip=0.0.0.0 --no-browser > /vagrant/s3nb.log 2>&1'"
+	${SSH} -c "tmux new-session -d -n run -s server 'PYTHONPATH=/vagrant jupyter notebook --config=/vagrant/${CONFIG_FILE} --ip=0.0.0.0 --no-browser > /vagrant/s3nb.log 2>&1'"
