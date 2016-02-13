@@ -28,7 +28,7 @@
     S3_NOTEBOOK_URI=s3://path/to/notebooks/
 
     # and this
-    IPYTHON_MAJOR_VERSION=3
+    IPYTHON_MAJOR_VERSION=4
 
     # optionally set this - checkpoints will be stored locally, relative to this path (for IPython 3)
     CHECKPOINT_ROOT_DIR=~/.checkpoints
@@ -44,6 +44,12 @@
 
     ## IPython 3.x
     if [ $IPYTHON_MAJOR_VERSION == 3 ]; then
+        IPYNB_MANAGER=S3ContentsManager
+        IPYNB_MANAGER_CFG=contents_manager_class
+    fi
+
+    ## IPython 4.x
+    if [ $IPYTHON_MAJOR_VERSION == 4 ]; then
         IPYNB_MANAGER=S3ContentsManager
         IPYNB_MANAGER_CFG=contents_manager_class
     fi
@@ -64,6 +70,10 @@
 
 
     if [ $IPYTHON_MAJOR_VERSION == 3 ]; then
+        echo "c.S3ContentsManager.checkpoints_kwargs = {'root_dir': '${CHECKPOINT_ROOT_DIR}'}"  >> ${IPYNB_CONFIG}
+    fi
+
+    if [ $IPYTHON_MAJOR_VERSION == 4 ]; then
         echo "c.S3ContentsManager.checkpoints_kwargs = {'root_dir': '${CHECKPOINT_ROOT_DIR}'}"  >> ${IPYNB_CONFIG}
     fi
     ```
