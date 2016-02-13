@@ -82,7 +82,7 @@
 
 4. Run
     ``` bash
-    ipython notebook --profile=s3nbserver
+    jupyter notebook --config=~/.ipython/s3nbserver/ipython_notebook_config.py
     ```
 
 ## Development
